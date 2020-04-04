@@ -1,2 +1,0 @@
-# flippa
-Begin app
