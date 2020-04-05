@@ -1,20 +1,72 @@
 <script>
-  import { onMount } from 'svelte'
-  export let name;
-  export let message;
-  onMount(async () => {
-    let data = await (await fetch('/api')).json()
-    message = data.msg
-    console.log('MESSAGE: ', message)
-  })
-</script>
+  import { onMount } from "svelte";
+  import FlipCard from "./components/flipCard.svelte";
 
-<main>
-  <h1>Hello {name}!</h1>
-  <h2>{message}</h2>
-  <h3>Change me!</h3>
-  <p>Visit the <a href="https://svelte.dev/tutorial">Svelte tutorial</a> to learn how to build Svelte apps.</p>
-</main>
+  onMount(async () => {
+    initGame();
+  });
+
+  const flipKeys = ["apples", "oranges", "melons"];
+  let flippedKey = "";
+  let flippedVariant = "";
+  let cards = [];
+  let boardState = [];
+  let matched = [];
+
+  $: {
+    boardState = boardState.map(card => {
+      card.flipped =
+        matched.includes(card.flipKey) ||
+        (flippedKey === card.flipKey && flippedVariant === card.variant);
+      return card;
+    });
+  }
+
+  function initGame() {
+    console.log("Initialising flippa game");
+    cards = flipKeys.reduce((acc, flipKey) => {
+      acc.push({
+        flipKey,
+        variant: "A"
+      });
+      acc.push({
+        flipKey,
+        variant: "B"
+      });
+      return acc;
+    }, []);
+    shuffleArray(cards);
+    boardState = cards;
+  }
+
+  function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+  }
+
+  function handleFlip({ detail }) {
+    const { flipKey, variant } = detail;
+    if (flippedKey === "") {
+      flippedKey = flipKey;
+      flippedVariant = variant;
+    } else {
+      if (flippedKey === flipKey && flippedVariant !== variant) {
+        console.log("Match!", flipKey);
+        matched.push(flipKey);
+        if (matched.length === cards.length) {
+          console.log("All matched! Resetting game...");
+          matched = [];
+        }
+      } else {
+        console.log("No match");
+      }
+      flippedKey = "";
+      flippedVariant = "";
+    }
+  }
+</script>
 
 <style>
   main {
@@ -24,7 +76,7 @@
     margin: 0 auto;
   }
 
-  h1 { 
+  h1 {
     color: #ff3e00;
     text-transform: uppercase;
     font-size: 4em;
@@ -38,3 +90,13 @@
   }
 </style>
 
+<main>
+  <h1>Flippa</h1>
+  {#each boardState as card}
+    <FlipCard
+      flipKey={card.flipKey}
+      variant={card.variant}
+      flipped={card.flipped}
+      on:flip={handleFlip} />
+  {/each}
+</main>
